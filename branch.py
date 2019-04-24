@@ -114,15 +114,6 @@ def example_residual_connection(img_rows, img_cols,num_classes):
          Conv2D(64, (3, 3), padding='same')],
         Add(),
         Activation('relu'),
-        [Conv2D(3, (3, 3), padding='same'),
-         Conv2D(3, (3, 3), padding='same')],
-        Add(),
-        Activation('relu'),
-        BatchNormalization(axis=3),
-        Dropout(0.5),
-        [Conv2D(64, (3, 3), padding='same'),
-         Conv2D(64, (3, 3), padding='same')],
-        Add(),
         [Conv2D(64, (3, 3), padding='same'),
          Conv2D(64, (3, 3), padding='same')],
         Add(),
@@ -131,12 +122,10 @@ def example_residual_connection(img_rows, img_cols,num_classes):
         Dropout(0.5),
         AveragePooling2D((2, 2)),
         [Conv2D(128, (3, 3), padding='same'),
-         Conv2D(128, (3, 3), padding='same'),
          Conv2D(128, (3, 3), padding='same')],
         Add(),
         Activation('relu'),
         [Conv2D(128, (3, 3), padding='same'),
-         Conv2D(128, (3, 3), padding='same'),
          Conv2D(128, (3, 3), padding='same')],
         Add(),
         Activation('relu'),
@@ -158,7 +147,6 @@ def example_residual_connection(img_rows, img_cols,num_classes):
          Conv2D(256, (3, 3), padding='same')],
         Add(),
         Activation('relu'),
-        Activation('relu'),
         BatchNormalization(axis=3),
         Dropout(0.5),
         AveragePooling2D((2, 2)),
@@ -175,9 +163,123 @@ def example_residual_connection(img_rows, img_cols,num_classes):
         [Conv2D(512, (3, 3), padding='same'),
          Conv2D(512, (3, 3), padding='same'),
          Conv2D(512, (3, 3), padding='same')],
-        Add(),        
+        Add(),
         Activation('relu'),
+        BatchNormalization(axis=3),
+        Dropout(0.5),
         Flatten(),
+        Dense(num_classes, activation='softmax')
+    )
+
+    model = Model(input, output)
+    model.summary()
+    return model
+
+def example_vgg16(img_rows, img_cols,num_classes):
+    input = Input(shape=(img_rows, img_cols, 3))
+    output = build(
+        input,
+        Conv2D(64, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(64, (3, 3), padding='same'),
+        Activation('relu'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(128, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(128, (3, 3), padding='same'),
+        Activation('relu'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(256, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(256, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(256, (3, 3), padding='same'),
+        Activation('relu'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(512, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(512, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(512, (3, 3), padding='same'),
+        Activation('relu'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(512, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(512, (3, 3), padding='same'),
+        Activation('relu'),
+        Conv2D(512, (3, 3), padding='same'),
+        Activation('relu'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(256, activation='relu'),
+        Dropout(0.75),
+        Dense(num_classes, activation='softmax')
+    )
+
+    model = Model(input, output)
+    model.summary()
+    return model
+
+def example_vgg16_1(img_rows, img_cols,num_classes):
+    input = Input(shape=(img_rows, img_cols, 3))
+    output = build(
+        input,
+        Conv2D(64, (3, 3), padding='same'),
+        Conv2D(64, (3, 3), padding='same'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(128, (3, 3), padding='same'),
+        Conv2D(128, (3, 3), padding='same'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(256, (3, 3), padding='same'),
+        Conv2D(256, (3, 3), padding='same'),
+        Conv2D(256, (3, 3), padding='same'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2))
+    )
+    x=Flatten()(output)
+    x=Dense(256, activation='relu')(x)
+    x=Dropout(0.75)(x)
+    x=Dense(num_classes, activation='softmax')(x)
+    model0=Model(input, x)
+    model0.summary()
+    model = Model(input, output)
+    model.summary()
+    return model0, model
+
+def example_vgg16_2(img_rows, img_cols,num_classes):
+    input = Input(shape=(img_rows, img_cols, 256))
+    output = build(
+        input,
+        Conv2D(512, (3, 3), padding='same'),
+        Conv2D(512, (3, 3), padding='same'),
+        Conv2D(512, (3, 3), padding='same'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Conv2D(512, (3, 3), padding='same'),
+        Conv2D(512, (3, 3), padding='same'),
+        Conv2D(512, (3, 3), padding='same'),
+        BatchNormalization(axis=3),
+        Dropout(0.75),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(256, activation='relu'),
+        Dropout(0.75),
         Dense(num_classes, activation='softmax')
     )
 
@@ -237,22 +339,32 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 lr = 0.00001
 opt = keras.optimizers.Adam(lr, beta_1=0.5, beta_2=0.999, epsilon=1e-08, decay=1e-6)
 #opt = keras.optimizers.SGD(lr=1e-4, momentum=0.9)
-model = example_residual_connection(img_rows, img_cols,num_classes)
+"""
+model0,model1 = example_vgg16_1(img_rows, img_cols,num_classes)
+model2 = example_vgg16_2(8,8,num_classes)
+model = Model(input=model1.input, output=model2(model1.output))
+model0 = Model(input=model1.input, output=model0.output)
+"""
+model = example_vgg16(img_rows, img_cols,num_classes) #example_vgg16 example_residual_connection
 model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
-
+"""
+model0.compile(loss='categorical_crossentropy',
+              optimizer=opt,
+              metrics=['accuracy'])
+"""
 print('Not using data augmentation.')
 
 # 学習履歴をプロット
 #plot_history(history, result_dir)
-checkpointer = ModelCheckpoint(filepath='./cifar100/weights_only_cifar10_example_64-3.hdf5', 
+checkpointer = ModelCheckpoint(filepath='./cifar100/weights_only_cifar10_example_vgg16_64-o.hdf5', 
                           monitor='val_acc', verbose=1, save_best_only=True,save_weights_only=True)
-early_stopping = EarlyStopping(monitor='val_acc', patience=5, mode='max',
+early_stopping = EarlyStopping(monitor='val_acc', patience=50, mode='max',
                           verbose=1)
-lr_reduction = ReduceLROnPlateau(monitor='val_acc', patience=5,
-                          factor=0.5, min_lr=0.00001, verbose=1)
-csv_logger = CSVLogger('./cifar100/history_cifar10_example_64-3.log', separator=',', append=True)
+lr_reduction = ReduceLROnPlateau(monitor='val_acc', patience=50,
+                          factor=0.5, min_lr=0.000001, verbose=1)
+csv_logger = CSVLogger('./cifar100/history_cifar10_example_vgg16_64-o.log', separator=',', append=True)
 callbacks = [early_stopping, lr_reduction, csv_logger,checkpointer]
 
 history = model.fit(x_train, y_train,
@@ -262,5 +374,26 @@ history = model.fit(x_train, y_train,
                   validation_data=(x_test, y_test),
                   shuffle=True)        
 # save weights every epoch
-model.save_weights('./cifar100/params_example-2_epoch_{0:03d}.hdf5'.format(0), True)   
-save_history(history, os.path.join(result_dir, 'history_example_epoch_{0:03d}.txt'.format(0)))
+
+model.save_weights('./cifar100/params_example_vgg16_o_epoch_{0:03d}.hdf5'.format(0), True)   
+save_history(history, os.path.join(result_dir, 'history_example_vgg16_o_epoch_{0:03d}.txt'.format(0)))
+"""
+checkpointer = ModelCheckpoint(filepath='./cifar100/weights_only_cifar10_example_vgg16_64-3.hdf5', 
+                          monitor='val_acc', verbose=1, save_best_only=True,save_weights_only=True)
+early_stopping = EarlyStopping(monitor='val_acc', patience=50, mode='max',
+                          verbose=1)
+lr_reduction = ReduceLROnPlateau(monitor='val_acc', patience=50,
+                          factor=0.5, min_lr=0.000001, verbose=1)
+csv_logger = CSVLogger('./cifar100/history_cifar10_example_vgg16_64-3.log', separator=',', append=True)
+callbacks = [early_stopping, lr_reduction, csv_logger,checkpointer]
+
+history = model.fit(x_train, y_train,
+                  batch_size=batch_size,
+                  epochs=100,
+                  callbacks=callbacks,          
+                  validation_data=(x_test, y_test),
+                  shuffle=True)        
+# save weights every epoch
+model.save_weights('./cifar100/params_example_vgg16_epoch_{0:03d}.hdf5'.format(0), True)   
+save_history(history, os.path.join(result_dir, 'history_example_vgg16_epoch_{0:03d}.txt'.format(0)))
+"""
