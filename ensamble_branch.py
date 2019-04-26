@@ -1,4 +1,15 @@
 from __future__ import print_function
+
+from keras import backend as K
+from keras.engine.topology import Layer
+from keras import activations
+from keras import utils
+from keras.models import Model
+from keras.layers import *
+from keras.preprocessing.image import ImageDataGenerator
+from Capsule import *
+from SpatialPyramidPooling import SpatialPyramidPooling  #add
+
 import keras
 from keras.datasets import cifar10,cifar100
 from keras.preprocessing.image import ImageDataGenerator
@@ -27,6 +38,15 @@ import matplotlib.pyplot as plt
 import cv2
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, CSVLogger
 from keras.callbacks import ModelCheckpoint
+
+
+
+# define the margin loss like hinge loss
+def margin_loss(y_true, y_pred):
+    lamb, margin = 0.5, 0.1
+    return K.sum(y_true * K.square(K.relu(1 - margin - y_pred)) + lamb * (
+        1 - y_true) * K.square(K.relu(y_pred - margin)), axis=-1)
+                
 
 def save_history(history, result_file):
     loss = history.history['loss']
@@ -252,62 +272,68 @@ def Double_vgg16(img_rows, img_cols,num_classes):
     model.summary()
     return model
 
-def example_vgg16_1(img_rows, img_cols,num_classes):
+def cnn_triple(img_rows, img_cols,num_classes):
     input = Input(shape=(img_rows, img_cols, 3))
-    output = build(
+    output0 = build(
         input,
-        Conv2D(64, (3, 3), padding='same'),
-        Conv2D(64, (3, 3), padding='same'),
-        BatchNormalization(axis=3),
-        Dropout(0.75),
-        MaxPooling2D((2, 2)),
-        Conv2D(128, (3, 3), padding='same'),
-        Conv2D(128, (3, 3), padding='same'),
-        BatchNormalization(axis=3),
-        Dropout(0.75),
-        MaxPooling2D((2, 2)),
-        Conv2D(256, (3, 3), padding='same'),
-        Conv2D(256, (3, 3), padding='same'),
-        Conv2D(256, (3, 3), padding='same'),
-        BatchNormalization(axis=3),
-        Dropout(0.75),
-        MaxPooling2D((2, 2))
+        Conv2D(64, (3, 3), activation='relu',padding='same'),
+        Conv2D(64, (3, 3), activation='relu',padding='same'),
+        BatchNormalization(axis=3),  
+        Dropout(0.5),                
+        AveragePooling2D((2, 2)),
+        Conv2D(128, (3, 3), activation='relu',padding='same'),
+        Conv2D(128, (3, 3), activation='relu',padding='same'),
+        BatchNormalization(axis=3),  
+        Dropout(0.5),                
+        AveragePooling2D((2, 2)),    
+        Conv2D(256, (3, 3), activation='relu',padding='same'),  
+        Conv2D(256, (3, 3), activation='relu',padding='same'),  
+        Dropout(0.5),    
     )
-    x=Flatten()(output)
-    x=Dense(256, activation='relu')(x)
-    x=Dropout(0.75)(x)
-    x=Dense(num_classes, activation='softmax')(x)
-    model0=Model(input, x)
-    model0.summary()
-    model = Model(input, output)
-    model.summary()
-    return model0, model
-
-def example_vgg16_2(img_rows, img_cols,num_classes):
-    input = Input(shape=(img_rows, img_cols, 256))
-    output = build(
-        input,
-        Conv2D(512, (3, 3), padding='same'),
-        Conv2D(512, (3, 3), padding='same'),
-        Conv2D(512, (3, 3), padding='same'),
-        BatchNormalization(axis=3),
-        Dropout(0.75),
-        MaxPooling2D((2, 2)),
-        Conv2D(512, (3, 3), padding='same'),
-        Conv2D(512, (3, 3), padding='same'),
-        Conv2D(512, (3, 3), padding='same'),
-        BatchNormalization(axis=3),
-        Dropout(0.75),
-        MaxPooling2D((2, 2)),
+    
+    output1 = build(
+        output0,
+        AveragePooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='tf'),
         Flatten(),
-        Dense(256, activation='relu'),
-        Dropout(0.75),
         Dense(num_classes, activation='softmax')
+    )
+    output2 = build(
+        output0,
+        SpatialPyramidPooling([1,2,4]),    #[1,2,4]
+        Dense(num_classes, activation='softmax')
+    )
+    output3 = build(
+        output0,
+        Reshape((-1, 128)),
+        Capsule(10, 96, 3, True),  #16
+        Lambda(lambda z: K.sqrt(K.sum(K.square(z), 2)))
+    )
+    output = build(
+        [output1,output2,output3],
+        Add()
     )
 
     model = Model(input, output)
     model.summary()
     return model
+
+def model_cifar(input_image=Input(shape=(None, None, 3))):
+# A common Conv2D model
+    x = Conv2D(64, (3, 3), activation='relu',padding='same')(input_image)
+    x = Conv2D(64, (3, 3), activation='relu',padding='same')(x)
+    x = BatchNormalization(axis=3)(x)  
+    x = Dropout(0.5)(x)                
+    x = AveragePooling2D((2, 2))(x)
+    x = Conv2D(128, (3, 3), activation='relu',padding='same')(x)
+    x = Conv2D(128, (3, 3), activation='relu',padding='same')(x)
+    x = BatchNormalization(axis=3)(x)  
+    x = Dropout(0.5)(x)                
+    x = AveragePooling2D((2, 2))(x)    
+    x = Conv2D(256, (3, 3), activation='relu',padding='same')(x)  
+    x = Conv2D(256, (3, 3), activation='relu',padding='same')(x)  
+    #x = BatchNormalization(axis=3)(x)  
+    x = Dropout(0.5)(x)                
+    return x,input_image
     
 batch_size = 16
 num_classes = 10
@@ -367,7 +393,28 @@ model2 = example_vgg16_2(8,8,num_classes)
 model = Model(input=model1.input, output=model2(model1.output))
 model0 = Model(input=model1.input, output=model0.output)
 """
-model = Double_vgg16(img_rows, img_cols,num_classes) #Wide_vgg16  #example_vgg16 example_residual_connection
+#SPP
+x1,input_image1=model_cifar(input_image=Input(shape=(None, None, 3)))
+x1 = SpatialPyramidPooling([1,2,4])(x1)    #[1,2,4]
+output1 = Dense(num_classes, activation='softmax')(x1)
+
+#AveragePooling
+x2,input_image2=model_cifar(input_image=Input(shape=(32, 32, 3)))
+x2 = AveragePooling2D(pool_size=(2, 2), strides=None, border_mode='valid', dim_ordering='tf')(x2)
+x2 = Flatten()(x2)
+output2 = Dense(num_classes, activation='softmax')(x2)
+
+#Capsule
+x3,input_image3=model_cifar(input_image=Input(shape=(None, None, 3)))
+x3 = Reshape((-1, 128))(x3)
+capsule = Capsule(10, 96, 3, True)(x3)  #16
+output3 = Lambda(lambda z: K.sqrt(K.sum(K.square(z), 2)))(capsule)
+
+model1 = Model(inputs=input_image1, outputs=output1)
+model2 = Model(inputs=input_image2, outputs=output2)
+model3 = Model(inputs=input_image3, outputs=output3)
+
+model = cnn_triple(img_rows, img_cols,num_classes) #Wide_vgg16  #example_vgg16 example_residual_connection
 model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
@@ -380,13 +427,13 @@ print('Not using data augmentation.')
 
 # 学習履歴をプロット
 #plot_history(history, result_dir)
-checkpointer = ModelCheckpoint(filepath='./cifar100/weights_only_cifar10_example_vgg16_64-ol.hdf5', 
+checkpointer = ModelCheckpoint(filepath='./cifar100/weights_only_cnn_triple_64.hdf5', 
                           monitor='val_acc', verbose=1, save_best_only=True,save_weights_only=True)
 early_stopping = EarlyStopping(monitor='val_acc', patience=50, mode='max',
                           verbose=1)
 lr_reduction = ReduceLROnPlateau(monitor='val_acc', patience=50,
                           factor=0.5, min_lr=0.000001, verbose=1)
-csv_logger = CSVLogger('./cifar100/history_cifar10_example_vgg16_64-ol.log', separator=',', append=True)
+csv_logger = CSVLogger('./cifar100/history_cifar10_cnn_triple_64.log', separator=',', append=True)
 callbacks = [early_stopping, lr_reduction, csv_logger,checkpointer]
 
 history = model.fit(x_train, y_train,
@@ -397,8 +444,8 @@ history = model.fit(x_train, y_train,
                   shuffle=True)        
 # save weights every epoch
 
-model.save_weights('./cifar100/params_example_vgg16_ol_epoch_{0:03d}.hdf5'.format(0), True)   
-save_history(history, os.path.join(result_dir, 'history_example_vgg16_ol_epoch_{0:03d}.txt'.format(0)))
+model.save_weights('./cifar100/params_cnn_triple_64_epoch_{0:03d}.hdf5'.format(0), True)   
+save_history(history, os.path.join(result_dir, 'history_cnn_triple_64_epoch_{0:03d}.txt'.format(0)))
 """
 checkpointer = ModelCheckpoint(filepath='./cifar100/weights_only_cifar10_example_vgg16_64-3.hdf5', 
                           monitor='val_acc', verbose=1, save_best_only=True,save_weights_only=True)
