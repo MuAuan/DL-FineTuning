@@ -127,8 +127,6 @@ history = model.fit(x_train, y_train,
                     callbacks=callbacks,
                     validation_data=(x_test, y_test))
 
-#model.load_weights('./cifar10/cifar_cnn_128.hdf5')
-
 checkpointer = ModelCheckpoint(filepath='./cifar10/mnist_cnn_128.hdf5', 
                                monitor='val_acc', verbose=1, save_best_only=True,save_weights_only=True)
 early_stopping = EarlyStopping(monitor='val_acc', patience=20, mode='max',
