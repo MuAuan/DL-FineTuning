@@ -116,7 +116,7 @@ def check_layer(img=x_test[1],epoch=0):
     print('Predicted class:',index_predict)
     print(' Probability: {}'.format(predictions[0][index_predict]))
 
-#model.load_weights('./cifar10/cifar10_cnn128_19_g.hdf5')    
+model.load_weights('vgg16_weights.hdf5',by_name=True)
     
 ch_layer = Check_layer()
 callbacks = [ch_layer] 
