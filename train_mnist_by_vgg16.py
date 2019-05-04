@@ -22,14 +22,12 @@ from keras.datasets import mnist
 #(x_train, y_train), (x_test, y_test) = cifar10.load_data()
 #x_train,y_train,x_test,y_test = getDataSet(img_rows,img_cols)
 
-img_rows, img_cols=128,128
+img_rows, img_cols, ch=128,128,1
 num_classes = 10
 # データをロード
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 # 前処理
-x_train = x_train.reshape(60000,28,28,1)  #np.expand_dims(x_train, 3)
-x_test = x_test.reshape(10000,28,28,1) 
 
 X_train =[]
 X_test = []
@@ -42,8 +40,8 @@ for i in range(10000):
     #dst = dst[:,:,::-1]  
     X_test.append(dst)
 
-X_train = np.array(X_train).reshape(50000,img_rows, img_cols,1)
-X_test = np.array(X_test).reshape(10000,img_rows, img_cols,1)
+X_train = np.array(X_train).reshape(50000,img_rows, img_cols,ch)
+X_test = np.array(X_test).reshape(10000,img_rows, img_cols,ch)
 
 y_train=y_train[:50000]
 y_test=y_test[:10000]
@@ -63,7 +61,7 @@ y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
 def create_normal_model():
-    #input_tensor=(img_rows, img_cols,1)
+    #input_tensor=(img_rows, img_cols,ch)
     input_tensor = x_train.shape[1:] 
     input_model = Sequential()
     input_model.add(InputLayer(input_shape=input_tensor))
